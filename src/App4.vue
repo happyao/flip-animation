@@ -26,9 +26,8 @@
          <div v-for="(item,index) in images" :key="index"  
           :class="['mag-page',
           'mag-page-right',
-          {'mag-page-active':curPage === index && !flipping && !!index%2 },
-          {'right-enter-to':curPage === index && flipping && !!index%2},
-          {'right-leave-to':curPage === index && leftFlipping && !!index%2}
+          {'mag-page-active':curPage === index && !flipping && (!!index%2||index===0)  },
+          {'right-enter-to':curPage === index && leftFlipping && (!!index%2|| index===0)}
           ]">
           <div class="mag-item">
             <img :src="images[index]"  class="mag-image">
@@ -55,8 +54,8 @@ export default {
   },
   data(){
     return{
-      magStatgeMove1:true,
        curPage:0,
+       timer:null,
        flipping :false,
        leftFlipping:false,
        images:[
@@ -79,59 +78,71 @@ export default {
   mounted(){
     this.refresh(true)
   },
+  unmounted(){
+    clearTimeout(this.timer)
+  },
   methods:{
     right(){  
-      this.magStatgeMove1= false;
-      console.log(this.curPage, this.images.length-1);
+      if(this.flipping || this.leftFlipping){
+        return
+      }
       if(this.curPage >= this.images.length-1){
         window.alert('已翻到最后一页面')
         return
       }
-      //右边
+      //right 按钮 =》 左边的页面从右向左运动
       this.curPage +=2
       this.flipping = true
+      console.log(this.curPage, this.images.length-1);
       this.$nextTick(()=>{
         this.refresh()
       })
-      setTimeout(()=>{
+      this.timer =  setTimeout(()=>{
         this.flipping = false
-      },1000)
+      },500)
     },
     left(){
-      //左边
+      if(this.leftFlipping || this.flipping){
+        return
+      }
       if(this.curPage <= 0){
         window.alert('已翻到第一页')
         return
       }
+      //left 按钮 =》 右边的页面从左向右运动
       this.curPage -=2
       this.leftFlipping = true
       this.$nextTick(()=>{
         this.refresh()
       })
-      setTimeout(()=>{
+      this.timer = setTimeout(()=>{
         this.leftFlipping = false
-      },1000)
+      },500)
 
     },
     refresh(){
       const lefts = document.querySelectorAll('.mag-page-left')
       for(let i=0; i< lefts.length;i++){
-        if(i !== this.curPage-1 ){
+
+        if(i === this.curPage-1){
+          //去掉display = 'none' => 展示出来
+          lefts[i].removeAttribute('style')
+        }else{
+          // 除去再下面一层的左侧页面外隐藏
           if(!(this.flipping && i === this.curPage-3)){
              lefts[i].style.display = 'none'
           }
-        }else{
-          lefts[i].removeAttribute('style')
         }
       }
       const rights = document.querySelectorAll('.mag-page-right')
       for(let i=0; i< rights.length;i++){
-        if(i !== this.curPage){
-          if(!(this.leftFlipping && i === this.curPage+2 && this.curPage!==0)){
+        if(i === this.curPage){
+          rights[i].removeAttribute('style')
+        }else{
+          // 除去再下面一层的右侧页面外隐藏
+          if(!(this.leftFlipping && i === this.curPage+2)){
             rights[i].style.display = 'none'
           }
-        }else{
-          rights[i].removeAttribute('style')
         }
       }
       
@@ -163,7 +174,7 @@ export default {
    }
 }
 
-@keyframes right-leave-to {
+@keyframes right-enter-to {
   0%{
     right:150%;
     width: 20%;
@@ -236,10 +247,9 @@ export default {
    }
   .e-book-stage{
     width: 80%;
-    height: 80%;
+    height: 100%;
     position: relative;
     margin: 0 auto;
-    top: 10%;
     transition: transform 0.5s ease ;
      &.e-book-stage-move1{
        transform: translate(-25%, 0%);
@@ -288,13 +298,13 @@ export default {
        &-right{
          right: 0;
 
-         &.right-enter-to{
-           z-index: 1;
-         }
+        //  &.right-enter-to{
+        //    z-index: 1;
+        //  }
 
-         &.right-leave-to{
+         &.right-enter-to{
            z-index: 2;
-           animation: right-leave-to 0.5s ease forwards
+           animation: right-enter-to 0.5s ease forwards
          }
        }
         .mag-item{
